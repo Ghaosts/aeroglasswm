@@ -1,0 +1,35 @@
+# AeroglassWM Example Configuration
+# Copy this file to ~/.config/aeroglass/config.toml
+
+gap = 10
+gap_between = 20
+bar_h = 30
+corner_radius = 12
+slider_radius = 10
+btn_radius = 8
+bar_radius = 12
+morph_radius = 100
+
+[colors]
+bg = [0.1, 0.1, 0.1, 1.0]
+bar = [0.05, 0.05, 0.05, 0.95]
+slider = [0.3, 0.3, 0.3, 0.95]
+btn_fs = [0.2, 0.6, 1.0, 0.9]
+btn_close = [1.0, 0.3, 0.3, 0.9]
+slider_pull = [0.8, 0.9, 1.0, 0.9]
+border_active = [0.2, 0.6, 1.0, 1.0]
+border_inactive = [0.5, 0.5, 0.5, 0.5]
+
+[actions]
+click_left = "fullscreen"
+click_right = "close"
+swipe_left = "exec:rofi -show drun"
+swipe_right = "close"
+swipe_up = "detach"
+none = "none"
+
+[hotkeys]
+"Super+Return" = "exec:foot"
+"Super+Q" = "close"
+"Super+F" = "fullscreen"
+"Super+D" = "detach"
