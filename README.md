@@ -6,7 +6,7 @@ A minimalist, gesture-centric Wayland compositor built on wlroots and SceneFX. I
 
 <!-- Replace with actual screenshot -->
 
-![AeroglassWM](docs/screenshot.png)
+![AeroglassWM](docs/Screenshot.png)
 
 ## Features
 
@@ -88,4 +88,4 @@ swipe_up    = "detach"
 
 ## License
 
-MIT
+Proprietary. All rights reserved. The source code is closed and confidential. Binaries are provided for testing purposes only. Reverse engineering, modification, or redistribution is strictly prohibited.
