@@ -1,0 +1,21 @@
+# Скомпилированный мусор
+build/
+build-asan/
+*.o
+*.so
+
+# ИСХОДНЫЙ КОД (Проприетарный)
+src/
+include/
+backups/
+history/
+protocols/
+shaders/
+*.c
+*.h
+meson.build
+run.sh
+
+# Системный мусор
+.DS_Store
+*.swp
