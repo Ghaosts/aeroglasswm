@@ -1,35 +1,90 @@
-# AeroglassWM Example Configuration
-# Copy this file to ~/.config/aeroglass/config.toml
-
+xkb_layout = "us,ru"
+xkb_options = "grp:alt_shift_toggle,grp:win_space_toggle"
+# Основные отступы и геометрия
+terminal = "foot"
+layout = "desktop"
 gap = 10
+gap_x = 20
+gap_y = 20
 gap_between = 20
-bar_h = 30
+border_width = 2
 corner_radius = 12
+
+# Верхняя панель и слайдер
+slider_w = 200
+slider_h = 20
+bar_h = 30
 slider_radius = 10
 btn_radius = 8
 bar_radius = 12
 morph_radius = 100
 
+# Настройки HUD сетки
+hud_mode = "miniature"
+hud_radius = -1
+
+# Автозапуск (корневой ключ, обязательно выше любой [таблицы])
+autostart = [
+  "swaybg -c '#1e1e2e'",
+  "waybar",
+  "mako",
+  "wl-paste --watch cliphist store",
+]
+
 [colors]
-bg = [0.1, 0.1, 0.1, 1.0]
+bg = [0.95, 0.95, 0.95, 1.0]
 bar = [0.05, 0.05, 0.05, 0.95]
 slider = [0.3, 0.3, 0.3, 0.95]
 btn_fs = [0.2, 0.6, 1.0, 0.9]
 btn_close = [1.0, 0.3, 0.3, 0.9]
-slider_pull = [0.8, 0.9, 1.0, 0.9]
-border_active = [0.2, 0.6, 1.0, 1.0]
-border_inactive = [0.5, 0.5, 0.5, 0.5]
+border_active = [1.0, 1.0, 1.0, 0.95]
+border_inactive = [0.35, 0.35, 0.38, 0.45]
 
 [actions]
 click_left = "fullscreen"
 click_right = "close"
-swipe_left = "exec:rofi -show drun"
+swipe_left = "fullscreen"
 swipe_right = "close"
 swipe_up = "detach"
-none = "none"
+
+[images]
+bar = "~/.config/aeroglass/skins/qa_test/bar.png"
+slider = "~/.config/aeroglass/skins/qa_test/slider.png"
+btn_left = "~/.config/aeroglass/skins/qa_test/left.png"
+btn_right = "~/.config/aeroglass/skins/qa_test/right.png"
 
 [hotkeys]
+"Print" = "exec:mkdir -p ~/Pictures && grim ~/Pictures/shot.png"
+"Super+Shift+s" = "exec:mkdir -p ~/Pictures && slurp | grim -g - ~/Pictures/shot_area.png"
+"Super+Shift+r" = "exec:~/.local/bin/aeroglass-reload"
+# Запуск приложений
 "Super+Return" = "exec:foot"
-"Super+Q" = "close"
-"Super+F" = "fullscreen"
-"Super+D" = "detach"
+"Super+d" = "exec:rofi -show drun"
+
+# Управление окнами
+"Super+q" = "close"
+"Super+v" = "win_floating"
+"Super+f" = "ws_floating"
+
+# Управление сеткой и стеком
+"Super+r" = "grid_flip"
+"Super+bracketright" = "stack_next"
+"Super+bracketleft" = "stack_prev"
+
+# Перемещение и фокус
+"Super+Shift+Left" = "swap_left"
+"Super+Shift+Right" = "swap_right"
+"Super+Shift+Up" = "swap_up"
+"Super+Shift+Down" = "swap_down"
+"Super+Up" = "focus_prev"
+"Super+Down" = "focus_next"
+
+# Мультимедиа-клавиши и яркость
+"XF86AudioRaiseVolume" = "exec:wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"
+"XF86AudioLowerVolume" = "exec:wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+"XF86AudioMute" = "exec:wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+"XF86MonBrightnessUp" = "exec:brightnessctl set 5%+"
+"XF86MonBrightnessDown" = "exec:brightnessctl set 5%-"
+
+# Вернуть плавающее окно в границы экрана (центрирует и ужимает под экран)
+"Super+c" = "win_center"
