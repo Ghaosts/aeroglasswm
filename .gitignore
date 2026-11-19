@@ -19,3 +19,5 @@ run.sh
 # Системный мусор
 .DS_Store
 *.swp
+meson_options.txt
+config.toml
