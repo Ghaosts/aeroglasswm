@@ -9,7 +9,7 @@ gap_y = 20
 gap_between = 20
 border_width = 2
 corner_radius = 12
-anim_duration = 180
+anim_duration = 240
 
 # Верхняя панель и слайдер
 slider_w = 200
