@@ -9,6 +9,7 @@ gap_y = 20
 gap_between = 20
 border_width = 2
 corner_radius = 12
+anim_duration = 180
 
 # Верхняя панель и слайдер
 slider_w = 200
@@ -75,8 +76,8 @@ btn_right = "~/.config/aeroglass/skins/qa_test/right.png"
 "Super+Shift+Right" = "swap_right"
 "Super+Shift+Up" = "swap_up"
 "Super+Shift+Down" = "swap_down"
-"Super+Up" = "focus_prev"
-"Super+Down" = "focus_next"
+"Super+Up" = "focus_up"
+"Super+Down" = "focus_down"
 
 "Super+Shift+Cyrillic_yeru" = "exec:mkdir -p ~/Pictures && slurp | grim -g - ~/Pictures/shot_area.png"
 "Super+e" = "exec:dolphin"
@@ -110,3 +111,6 @@ btn_right = "~/.config/aeroglass/skins/qa_test/right.png"
 "XF86MonBrightnessUp" = "exec:brightnessctl set 5%+"
 "XF86MonBrightnessDown" = "exec:brightnessctl set 5%-"
 "Super+c" = "win_center"
+
+"Super+Left" = "focus_left"
+"Super+Right" = "focus_right"
