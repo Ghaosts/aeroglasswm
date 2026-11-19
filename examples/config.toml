@@ -23,9 +23,8 @@ morph_radius = 100
 hud_mode = "miniature"
 hud_radius = -1
 
-# Автозапуск (корневой ключ, обязательно выше любой [таблицы])
 autostart = [
-  "swaybg -c '#1e1e2e'",
+  "swaybg -i /usr/share/wallpapers/cachyos-wallpapers/Abstract.png -m fill",
   "waybar",
   "mako",
   "wl-paste --watch cliphist store",
@@ -54,7 +53,7 @@ btn_left = "~/.config/aeroglass/skins/qa_test/left.png"
 btn_right = "~/.config/aeroglass/skins/qa_test/right.png"
 
 [hotkeys]
-"Print" = "exec:mkdir -p ~/Pictures && grim ~/Pictures/shot.png"
+"Print" = "exec:mkdir -p ~/Pictures && slurp | grim -g - ~/Pictures/shot_area.png"
 "Super+Shift+s" = "exec:mkdir -p ~/Pictures && slurp | grim -g - ~/Pictures/shot_area.png"
 "Super+Shift+r" = "exec:~/.local/bin/aeroglass-reload"
 # Запуск приложений
@@ -79,12 +78,35 @@ btn_right = "~/.config/aeroglass/skins/qa_test/right.png"
 "Super+Up" = "focus_prev"
 "Super+Down" = "focus_next"
 
-# Мультимедиа-клавиши и яркость
+"Super+Shift+Cyrillic_yeru" = "exec:mkdir -p ~/Pictures && slurp | grim -g - ~/Pictures/shot_area.png"
+"Super+e" = "exec:dolphin"
+"Super+Cyrillic_u" = "exec:dolphin"
+"Super+b" = "exec:MOZ_ENABLE_WAYLAND=1 firefox"
+"Super+Cyrillic_i" = "exec:MOZ_ENABLE_WAYLAND=1 firefox"
+"Super+m" = "fullscreen"
+"Super+Shift+e" = "exec:pkill -TERM aeroglasswm"
+"Super+1" = "ws_1"
+"Super+2" = "ws_2"
+"Super+3" = "ws_3"
+"Super+4" = "ws_4"
+"Super+5" = "ws_5"
+"Super+6" = "ws_6"
+"Super+7" = "ws_7"
+"Super+8" = "ws_8"
+"Super+9" = "ws_9"
+"Super+Shift+1" = "move_ws_1"
+"Super+Shift+2" = "move_ws_2"
+"Super+Shift+3" = "move_ws_3"
+"Super+Shift+4" = "move_ws_4"
+"Super+Shift+5" = "move_ws_5"
+"Super+Shift+6" = "move_ws_6"
+"Super+Shift+7" = "move_ws_7"
+"Super+Shift+8" = "move_ws_8"
+"Super+Shift+9" = "move_ws_9"
+
 "XF86AudioRaiseVolume" = "exec:wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"
 "XF86AudioLowerVolume" = "exec:wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
 "XF86AudioMute" = "exec:wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
 "XF86MonBrightnessUp" = "exec:brightnessctl set 5%+"
 "XF86MonBrightnessDown" = "exec:brightnessctl set 5%-"
-
-# Вернуть плавающее окно в границы экрана (центрирует и ужимает под экран)
 "Super+c" = "win_center"
