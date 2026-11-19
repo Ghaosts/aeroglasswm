@@ -21,3 +21,5 @@ run.sh
 *.swp
 meson_options.txt
 config.toml
+build-desktop/
+build-mobile/
