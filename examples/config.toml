@@ -1,3 +1,4 @@
+slider = true
 xkb_layout = "us,ru"
 xkb_options = "grp:alt_shift_toggle,grp:win_space_toggle"
 # Основные отступы и геометрия
@@ -34,10 +35,9 @@ autostart = [
 
 [colors]
 bg = [0.95, 0.95, 0.95, 1.0]
-bar = [0.05, 0.05, 0.05, 0.95]
-slider = [0.3, 0.3, 0.3, 0.95]
-btn_fs = [0.2, 0.6, 1.0, 0.9]
-btn_close = [1.0, 0.3, 0.3, 0.9]
+bar = [0.04, 0.04, 0.05, 0.92]
+btn_fs = [0.22, 0.55, 0.98, 0.92]
+btn_close = [0.95, 0.28, 0.32, 0.92]
 border_active = [1.0, 1.0, 1.0, 0.95]
 border_inactive = [0.35, 0.35, 0.38, 0.45]
 
@@ -49,10 +49,10 @@ swipe_right = "close"
 swipe_up = "detach"
 
 [images]
-bar = "~/.config/aeroglass/skins/qa_test/bar.png"
-slider = "~/.config/aeroglass/skins/qa_test/slider.png"
-btn_left = "~/.config/aeroglass/skins/qa_test/left.png"
-btn_right = "~/.config/aeroglass/skins/qa_test/right.png"
+# bar = "~/.config/aeroglass/skins/qa_test/bar.png"
+# slider = "~/.config/aeroglass/skins/qa_test/slider.png"
+# btn_left = "~/.config/aeroglass/skins/qa_test/left.png"
+# btn_right = "~/.config/aeroglass/skins/qa_test/right.png"
 
 [hotkeys]
 "Super+Shift+s" = "exec:mkdir -p ~/Pictures && slurp | grim -g - ~/Pictures/shot_area.png"
