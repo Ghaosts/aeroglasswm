@@ -1,91 +1,59 @@
 # AeroglassWM
 
-A minimalist, gesture-centric Wayland compositor built on wlroots and SceneFX. It features a strict two-window mathematical grid, a highly customizable UI slider, and a fully declarative TOML configuration for both appearance and behavior.
+A standalone, minimalist Wayland compositor built from scratch in C on **wlroots 0.19** and **SceneFX 0.4**, featuring a cursor-aware hybrid tiling grid (`1x1` to `4x2`), real-time layout HUD, native Kawase blur & window shadows, Quickshell/Waybar layer-shell support, and a UNIX-socket IPC CLI (`wmctl`).
 
-> **Status:** `v0.1.0-alpha`. The core architecture is stable, but the API and configuration format may be subject to change in future releases.
+**Status:** `v0.2.0-desktop` (Closed-source binary release).
 
-<!-- Replace with actual screenshot -->
+## Key Features
 
-![AeroglassWM](docs/Screenshot.png)
+- **Hybrid Cursor-Aware Grid (`1x1` to `4x2`):**
+  - Default `3x2` band layout with automatic `2x2` progression (`1 -> 2 -> 3 -> 4 -> 5..6`).
+  - Binary 4-sector mode (`4x2`, up to 8 windows) where each quadrant splits `1/2` and automatically expands back to `1/4` when a neighbor closes.
+  - Real-time translucent layout HUD on `Super + Scroll` and `Super + R` (orientation flip).
+  - Automatic overflow to free workspaces ("penalty workspaces") with instant reclaim when a slot frees up.
+- **SceneFX Visuals & Animations:**
+  - Native Kawase backdrop blur (`blur`, `blur_size`, `blur_passes`, `blur_layers`) for transparent terminals, Waybar, and Quickshell.
+  - Soft window shadows (`shadow`, `shadow_range`), rounded corners, active/inactive window opacity, and Hyprland-style spring animations.
+- **Full Layer-Shell & Quickshell Support:**
+  - Supports `EXCLUSIVE` and `ON_DEMAND` keyboard interactivity, negative `exclusive_zone` overlays, and automatic `usable_area` recalculation.
+- **Declarative TOML Config & Window Rules:**
+  - Configured via `~/.config/aeroglass/config.toml`.
+  - `[[windowrule]]` matching by `app_id` and `title` with `float`, `workspace`, `size`, `center`, `blur`, `pin` (`Super + P`), `fullscreen`, `no_anim`, `opacity`, and `border_color`.
+- **IPC Control (`wmctl`):**
+  - Query live JSON state (`wmctl status`, `wmctl clients`) or trigger any compositor action (`wmctl dispatch <action>`) via `$WM_IPC_SOCK`.
 
-## Features
-
-- **Two-Window Tiling:** A strict Top/Bottom grid that dynamically adjusts when windows are moved, floated, or closed.
-- **Gesture-Centric UI:** A morphing slider located below the active window. Swipe left/right to trigger actions (e.g., fullscreen, close) or swipe up to detach the window.
-- **Declarative Configuration:** Complete control over window gaps, border radii, colors, and UI assets via `~/.config/aeroglass/config.toml`.
-- **Action & Hotkey Mapping:** Bind built-in actions (`fullscreen`, `close`, `detach`) or arbitrary shell commands (`exec:`) to clicks, swipes, and keyboard combinations.
-- **PNG Skins:** Customizable UI elements (bar, slider, buttons) with automatic corner-radius masking. Falls back to vector shapes if assets are missing.
-- **Layer Shell Support:** Out-of-the-box compatibility with `swaybg`, `waybar`, `rofi`, `wofi`, and `mako`.
-
-## Dependencies
+## Runtime Dependencies
 
 - `wlroots` (>= 0.19.0)
 - `scenefx` (0.4.x)
-- `cairo`
-- `tomlc99`
-- `wayland-server`
-- `xkbcommon`
+- `cairo`, `pixman`, `wayland`, `xkbcommon`
 
-*(For Arch Linux users: `pacman -S base-devel meson ninja cairo wlroots scenefx tomlc99 wayland wayland-protocols xkbcommon`)*
+## Installation & Session Setup
 
-## Build
-
+1. **Install binaries and default config:**
 ```sh
-meson setup build
-ninja -C build
+tar -xzf aeroglasswm-v0.2.0-desktop-x86_64.tar.gz
+sudo install -Dm755 aeroglasswm /usr/local/bin/aeroglasswm
+sudo install -Dm755 wmctl /usr/local/bin/wmctl
+mkdir -p ~/.config/aeroglass
+cp config.example.toml ~/.config/aeroglass/config.toml
 ```
 
-## Run
-
+2. **Add Display Manager entry (SDDM / GDM / greetd):**
 ```sh
-./build/aeroglasswm -s "foot"
+sudo tee /usr/share/wayland-sessions/aeroglasswm.desktop > /dev/null << "DESKTOP"
+[Desktop Entry]
+Name=AeroglassWM
+Comment=Minimalist Wayland Compositor with Hybrid Tiling & SceneFX
+Exec=aeroglasswm
+Type=Application
+DesktopNames=wlroots
+DESKTOP
 ```
 
-The `-s` flag accepts a shell command to run immediately after the compositor starts (e.g., starting a terminal, setting a wallpaper via `swaybg`, or launching a panel).
-
-## Configuration
-
-AeroglassWM reads its configuration from `~/.config/aeroglass/config.toml`.
-
-### Basic Example
-
-```toml
-gap = 10
-gap_between = 20
-bar_h = 30
-corner_radius = 12
-slider_radius = 10
-btn_radius = 8
-bar_radius = 12
-
-[colors]
-bg = [0.1, 0.1, 0.1, 1.0]
-bar = [0.05, 0.05, 0.05, 0.95]
-slider = [0.3, 0.3, 0.3, 0.95]
-btn_fs = [0.2, 0.6, 1.0, 0.9]
-btn_close = [1.0, 0.3, 0.3, 0.9]
-slider_pull = [0.8, 0.9, 1.0, 0.9]
-
-[actions]
-click_left  = "fullscreen"
-click_right = "close"
-swipe_left  = "exec:rofi -show drun"
-swipe_right = "close"
-swipe_up    = "detach"
-
-[hotkeys]
-"Super+Return" = "exec:foot"
-"Super+Q"      = "close"
-"Super+F"      = "fullscreen"
-```
-
-### Actions
-- `none`: Ignores the action (visual morphing still occurs).
-- `fullscreen`: Toggles fullscreen for the active window.
-- `close`: Closes the active window.
-- `detach`: Pops the window out of the grid (floating mode).
-- `exec:COMMAND`: Executes an arbitrary shell command via `sh -c`.
+3. **Start session:**
+Select **AeroglassWM** in your display manager (SDDM/GDM), or launch directly from a clean TTY (`tty1`) via `exec aeroglasswm`.
 
 ## License
 
-Proprietary. All rights reserved. The source code is closed and confidential. Binaries are provided for testing purposes only. Reverse engineering, modification, or redistribution is strictly prohibited.
+Proprietary. All rights reserved. The source code is closed and confidential. Binaries are provided for testing and preview purposes only. Reverse engineering, modification, or redistribution is strictly prohibited.
