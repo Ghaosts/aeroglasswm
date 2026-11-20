@@ -1,24 +1,23 @@
 # AeroglassWM
 
-A standalone, minimalist Wayland compositor built from scratch in C on **wlroots 0.19** and **SceneFX 0.4**, featuring a cursor-aware hybrid tiling grid (`1x1` to `4x2`), real-time layout HUD, native Kawase blur & window shadows, Quickshell/Waybar layer-shell support, and a UNIX-socket IPC CLI (`wmctl`).
+A standalone, minimalist Wayland compositor built from scratch in C on **wlroots 0.19** and **SceneFX 0.4**, featuring a diagonal X-cross cursor-aware hybrid tiling grid (`1x1` to `4x2`), real-time layout HUD, native Kawase blur & window shadows, Quickshell/Waybar layer-shell support, and a UNIX-socket IPC CLI (`wmctl`).
 
 **Status:** `v0.2.0-desktop` (Closed-source binary release).
 
 ## Key Features
 
-- **Hybrid Cursor-Aware Grid (`1x1` to `4x2`):**
+- **Diagonal X-Cross Hybrid Grid (`1x1` to `4x2`):**
+  - Screen-center X-cross (`×`) directional placement: move the cursor into the top, bottom, left, or right screen triangle and open a window directly into that zone.
   - Default `3x2` band layout with automatic `2x2` progression (`1 -> 2 -> 3 -> 4 -> 5..6`).
   - Binary 4-sector mode (`4x2`, up to 8 windows) where each quadrant splits `1/2` and automatically expands back to `1/4` when a neighbor closes.
   - Real-time translucent layout HUD on `Super + Scroll` and `Super + R` (orientation flip).
   - Automatic overflow to free workspaces ("penalty workspaces") with instant reclaim when a slot frees up.
 - **SceneFX Visuals & Animations:**
-  - Native Kawase backdrop blur (`blur`, `blur_size`, `blur_passes`, `blur_layers`) for transparent terminals, Waybar, and Quickshell.
-  - Soft window shadows (`shadow`, `shadow_range`), rounded corners, active/inactive window opacity, and Hyprland-style spring animations.
+  - Native Kawase backdrop blur (`blur`, `blur_size`, `blur_passes`, `blur_layers`), soft window shadows (`shadow`, `shadow_range`), rounded corners, active/inactive opacity, and Hyprland-style spring animations.
 - **Full Layer-Shell & Quickshell Support:**
   - Supports `EXCLUSIVE` and `ON_DEMAND` keyboard interactivity, negative `exclusive_zone` overlays, and automatic `usable_area` recalculation.
 - **Declarative TOML Config & Window Rules:**
-  - Configured via `~/.config/aeroglass/config.toml`.
-  - `[[windowrule]]` matching by `app_id` and `title` with `float`, `workspace`, `size`, `center`, `blur`, `pin` (`Super + P`), `fullscreen`, `no_anim`, `opacity`, and `border_color`.
+  - Configured via `~/.config/aeroglass/config.toml` with `[[windowrule]]` (`float`, `workspace`, `size`, `center`, `blur`, `pin` via `Super + P`, `fullscreen`, `no_anim`, `opacity`, `border_color`).
 - **IPC Control (`wmctl`):**
   - Query live JSON state (`wmctl status`, `wmctl clients`) or trigger any compositor action (`wmctl dispatch <action>`) via `$WM_IPC_SOCK`.
 
