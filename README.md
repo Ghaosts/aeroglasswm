@@ -2,7 +2,7 @@
 
 A minimalist, gesture-centric Wayland compositor built on wlroots and SceneFX. It features a strict two-window mathematical grid, a highly customizable UI slider, and a fully declarative TOML configuration for both appearance and behavior.
 
-> **Status:** `v0.1.0-alpha`. The core architecture is stable, but the API and configuration format may be subject to change in future releases.
+> **Status:** `v0.2.0-alpha`. The core architecture is stable, but the API and configuration format may be subject to change in future releases.
 
 <!-- Replace with actual screenshot -->
 
