@@ -14,7 +14,8 @@
 
 [general]
 layout = "desktop"              # "desktop" (ПК) или "mobile" (планшет/смартфон)
-workspaces = 9                  # Количество рабочих столов (1..16)
+workspaces = 9
+refresh_rate = 0                # Monitor refresh rate in Hz (0 = auto-max native)                  # Количество рабочих столов (1..16)
 xkb_layout = "us,ru"
 xkb_options = "grp:alt_shift_toggle,grp:win_space_toggle"
 
