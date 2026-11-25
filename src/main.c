@@ -1,74 +1,78 @@
 #define _POSIX_C_SOURCE 200809L
-#include <getopt.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <wlr/util/log.h>
+#include "toml.h"
 #include "modules/wm.h"
 #ifdef AEROGLASS_WITH_SLIDER
 #include "modules/slider.h"
 #endif
-#include "toml.h"
 
-static void default_config_path(char *buf, size_t cap) {
+static void default_config_path(char *out, size_t cap) {
     const char *xdg = getenv("XDG_CONFIG_HOME");
     const char *home = getenv("HOME");
-    const char *base = (xdg && xdg[0] != '\0') ? xdg : home;
-    if (base == NULL) base = ".";
-    snprintf(buf, cap, "%s/aeroglasswm/config.toml", base);
-    if (access(buf, R_OK) == 0) return;
-
-    char legacy[1024];
+    char base[512];
+    if (xdg && xdg[0]) snprintf(base, sizeof(base), "%s", xdg);
+    else if (home && home[0]) snprintf(base, sizeof(base), "%s/.config", home);
+    else { snprintf(out, cap, "config.toml"); return; }
+    snprintf(out, cap, "%s/aeroglasswm/config.toml", base);
+    FILE *f = fopen(out, "r");
+    if (f) { fclose(f); return; }
+    char legacy[512];
     snprintf(legacy, sizeof(legacy), "%s/aeroglass/config.toml", base);
-    if (access(legacy, R_OK) == 0) {
-        snprintf(buf, cap, "%s", legacy);
-    }
+    f = fopen(legacy, "r");
+    if (f) { fclose(f); snprintf(out, cap, "%s", legacy); }
 }
 
-static toml_table_t *open_config(const char *path) {
+static toml_table_t *read_config(const char *path) {
     FILE *fp = fopen(path, "r");
-    if (fp == NULL) return NULL;
+    if (fp == NULL) {
+        wlr_log(WLR_INFO, "CONFIG: %s not found, using defaults", path);
+        return NULL;
+    }
     char errbuf[256];
     toml_table_t *conf = toml_parse_file(fp, errbuf, sizeof(errbuf));
     fclose(fp);
     if (conf == NULL) {
-        wlr_log(WLR_ERROR, "failed to parse %s: %s", path, errbuf);
+        wlr_log(WLR_ERROR, "CONFIG: %s parse error: %s", path, errbuf);
+        return NULL;
     }
+    wlr_log(WLR_INFO, "CONFIG: loaded %s", path);
     return conf;
 }
 
-static void print_usage(const char *prog) {
-    printf("Usage: %s [-c config.toml] [-s startup_cmd] [-n] [-d]\n", prog);
+static void print_usage(const char *program) {
+    printf("Usage: %s [-s startup command] [-c config.toml] [-n]\n", program);
+    printf("  -s  command started inside the compositor\n");
     printf("  -c  path to config.toml\n");
-    printf("  -s  command to spawn on startup\n");
     printf("  -n  run without the slider module\n");
-    printf("  -d  enable debug logging\n");
 }
 
 int main(int argc, char *argv[]) {
-    char cfg_path[512];
-    default_config_path(cfg_path, sizeof(cfg_path));
-    const char *startup_cmd = NULL;
-    bool force_no_slider = false;
-    enum wlr_log_importance log_level = WLR_INFO;
+    wlr_log_init(WLR_INFO, NULL);
 
+    const char *startup_cmd = NULL;
+    const char *config_override = NULL;
+    bool force_no_slider = false;
     int opt;
-    while ((opt = getopt(argc, argv, "c:s:ndh")) != -1) {
+    while ((opt = getopt(argc, argv, "s:c:n")) != -1) {
         switch (opt) {
-        case 'c': snprintf(cfg_path, sizeof(cfg_path), "%s", optarg); break;
         case 's': startup_cmd = optarg; break;
+        case 'c': config_override = optarg; break;
         case 'n': force_no_slider = true; break;
-        case 'd': log_level = WLR_DEBUG; break;
         default: print_usage(argv[0]); return 0;
         }
     }
+    if (optind < argc) { print_usage(argv[0]); return 0; }
 
-    wlr_log_init(log_level, NULL);
+    char config_path[1024];
+    if (config_override) snprintf(config_path, sizeof(config_path), "%s", config_override);
+    else default_config_path(config_path, sizeof(config_path));
+    toml_table_t *conf = read_config(config_path);
 
-    toml_table_t *conf = open_config(cfg_path);
     struct wm_config wm_cfg;
     wm_config_defaults(&wm_cfg);
     wm_config_load(&wm_cfg, conf);
@@ -79,6 +83,7 @@ int main(int argc, char *argv[]) {
         if (conf) toml_free(conf);
         return 1;
     }
+    wm_load_hotkeys(server, conf);
 
 #ifdef AEROGLASS_WITH_SLIDER
     struct slider *slider = NULL;
@@ -93,13 +98,14 @@ int main(int argc, char *argv[]) {
     if (use_slider) wlr_log(WLR_INFO, "built without slider module");
 #endif
 
-    if (conf) toml_free(conf);
-
-    wm_run(server);
+    int status = 0;
+    if (wm_start(server, startup_cmd)) wm_run(server);
+    else status = 1;
 
 #ifdef AEROGLASS_WITH_SLIDER
     slider_detach(slider);
 #endif
     wm_destroy(server);
-    return 0;
+    if (conf) toml_free(conf);
+    return status;
 }

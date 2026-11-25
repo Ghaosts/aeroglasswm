@@ -138,7 +138,7 @@ static void wm_set_opacity(struct wlr_scene_node *n, float op) {
 static double wm_hypr_bezier(double t) {
     if (t <= 0.0) return 0.0;
     if (t >= 1.0) return 1.0;
-
+    // Быстрый старт + лёгкий пружинный перелёт (1.035) и мягкая посадка в 1.0
     double u = 1.0 - t;
     double base = 1.0 - u * u * u * u;
     double overshoot = 0.045 * (t * (1.0 - t) * (1.0 - t) * 6.75);
@@ -333,6 +333,7 @@ static void toplevel_request_close(struct wm_toplevel *t) {
     if (t->xdg_toplevel) wlr_xdg_toplevel_send_close(t->xdg_toplevel);
 }
 
+/* Configuration & Hotkeys (implemented in src/modules/config.c) */
 void wm_config_defaults(struct wm_config *config);
 void wm_config_load(struct wm_config *config, toml_table_t *conf);
 void wm_load_hotkeys(struct wm_server *server, toml_table_t *conf);
@@ -1058,7 +1059,6 @@ static void cursor_dispatch(struct wm_server *server, uint32_t time_msec) {
         wm_update_toplevel_border(t, t == server->active_toplevel);
         return;
     }
-#if 0 /* conserved: bottom-up fullscreen exit swipe */
     if (server->exit_fullscreen_dragging && server->dragging_toplevel) {
         struct wm_toplevel *t = server->dragging_toplevel;
         double dy = server->cursor->y - server->exit_fullscreen_start_y;
@@ -1070,7 +1070,6 @@ static void cursor_dispatch(struct wm_server *server, uint32_t time_msec) {
         }
         return;
     }
-#endif
     if (server->hooks.pointer_motion) {
         if (server->hooks.pointer_motion(server, time_msec, server->hooks_data)) return;
     }
@@ -1164,6 +1163,7 @@ static void server_cursor_motion_absolute(struct wl_listener *listener, void *da
     cursor_dispatch(server, event->time_msec);
 }
 
+
 static void server_cursor_button(struct wl_listener *listener, void *data) {
     struct wm_server *server = wl_container_of(listener, server, cursor_button);
     struct wlr_pointer_button_event *event = data;
@@ -1232,7 +1232,6 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
                 return;
             }
         }
-#if 0 /* conserved: bottom-up fullscreen exit swipe */
         if (server->active_toplevel && server->active_toplevel->is_fullscreen
                 && wl_list_empty(&server->outputs) == 0) {
             struct wm_output *o = wl_container_of(server->outputs.next, o, link);
@@ -1243,7 +1242,6 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
                 return;
             }
         }
-#endif
         if (server->hooks.pointer_button) {
             if (server->hooks.pointer_button(server, event, server->hooks_data)) return;
         }
@@ -1281,7 +1279,6 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
             }
             return;
         }
-#if 0 /* conserved: bottom-up fullscreen exit swipe */
         if (server->exit_fullscreen_dragging) {
             double dy = server->cursor->y - server->exit_fullscreen_start_y;
             server->exit_fullscreen_dragging = false;
@@ -1296,7 +1293,6 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
             }
             return;
         }
-#endif
         if (server->hooks.pointer_button) {
             if (server->hooks.pointer_button(server, event, server->hooks_data)) return;
         }
@@ -1352,10 +1348,14 @@ static void server_cursor_frame(struct wl_listener *listener, void *data) {
 	wlr_seat_pointer_notify_frame(server->seat);
 }
 
+/* Output & Idle subsystem moved to src/modules/output.c */
+
 static void wm_update_toplevel_border(struct wm_toplevel *t, bool is_active);
 static void toplevel_map_common(struct wm_toplevel *toplevel);
 static void toplevel_unmap_common(struct wm_toplevel *toplevel);
 static void toplevel_destroy_common(struct wm_toplevel *toplevel);
+
+/* Output & Idle subsystem moved to src/modules/output.c */
 
 static void wm_update_toplevel_border(struct wm_toplevel *t, bool is_active) {
     if (t == NULL || t->border == NULL || t->scene_tree == NULL) return;
@@ -1466,6 +1466,7 @@ static void focus_next_toplevel(struct wm_server *server, bool forward) {
         t = wl_container_of(forward ? t->link.next : t->link.prev, t, link);
     }
 }
+
 
 static void apply_corner_radius_to_node(struct wlr_scene_node *node, int radius) {
     if (node->type == WLR_SCENE_NODE_BUFFER) {
@@ -2495,14 +2496,17 @@ static void wm_apply_system_theme(const char *theme) {
     setenv("MOZ_GTK_TITLEBAR_DECORATION", "client", true);
         setenv("QT_QPA_PLATFORMTHEME", "kde", true);
         setenv("QT_STYLE_OVERRIDE", "Breeze", true);
-        wm_spawn_command("(gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' & kwriteconfig6 --file ~/.config/kdeglobals --group General --key ColorScheme BreezeDark &) >/dev/null 2>&1");
+        wm_spawn_command("gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' >/dev/null 2>&1; kwriteconfig6 --file ~/.config/kdeglobals --group General --key ColorScheme BreezeDark >/dev/null 2>&1");
     } else {
         setenv("GTK_THEME", "Adwaita", true);
         setenv("QT_QPA_PLATFORMTHEME", "kde", true);
         setenv("QT_STYLE_OVERRIDE", "Breeze", true);
-        wm_spawn_command("(gsettings set org.gnome.desktop.interface color-scheme 'default' & kwriteconfig6 --file ~/.config/kdeglobals --group General --key ColorScheme BreezeLight &) >/dev/null 2>&1");
+        wm_spawn_command("gsettings set org.gnome.desktop.interface color-scheme 'default' >/dev/null 2>&1; kwriteconfig6 --file ~/.config/kdeglobals --group General --key ColorScheme BreezeLight >/dev/null 2>&1");
     }
 }
+
+
+/* IPC subsystem moved to src/modules/ipc.c */
 
 bool wm_start(struct wm_server *server, const char *startup_cmd) {
     const char *socket = wl_display_add_socket_auto(server->wl_display);

@@ -396,3 +396,4 @@ toml_table_t *hotkeys_table = toml_table_in(conf, "hotkeys");
     }
     wm_register_default_hotkeys(server);
 }
+

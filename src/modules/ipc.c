@@ -94,3 +94,4 @@ void wm_ipc_start(struct wm_server *srv, const char *sock_name) {
     setenv("WM_IPC_SOCK", srv->ipc_path, true);
     srv->ipc_source = wl_event_loop_add_fd(wl_display_get_event_loop(srv->wl_display), fd, WL_EVENT_READABLE, wm_ipc_readable, srv);
 }
+

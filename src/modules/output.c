@@ -8,22 +8,7 @@
 #include <scenefx/types/wlr_scene.h>
 #include "wm_internal.h"
 
-static void output_frame(struct wl_listener *l, void *d){
-    (void)d;
-    struct wm_output *o = wl_container_of(l, o, frame);
-    struct wlr_scene_output *so = wlr_scene_get_scene_output(o->server->scene, o->wlr_output);
-    if (!so) return;
-    wlr_scene_output_commit(so, NULL);
-    static bool first_frame_cursor = false;
-    if (!first_frame_cursor && o->server && o->server->cursor && o->server->cursor_mgr) {
-        first_frame_cursor = true;
-        o->server->cursor_hidden = false;
-        wlr_cursor_set_xcursor(o->server->cursor, o->server->cursor_mgr, "default");
-    }
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    wlr_scene_output_send_frame_done(so, &t);
-}
+static void output_frame(struct wl_listener *l, void *d){(void)d;struct wm_output *o=wl_container_of(l,o,frame);struct wlr_scene_output *so=wlr_scene_get_scene_output(o->server->scene,o->wlr_output);if(!so)return;wlr_scene_output_commit(so,NULL);struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);wlr_scene_output_send_frame_done(so,&t);}
 static void pub_cfg(struct wm_server *s){if(!s->output_manager)return;struct wlr_output_configuration_v1 *c=wlr_output_configuration_v1_create();if(!c)return;struct wm_output *o;wl_list_for_each(o,&s->outputs,link){struct wlr_output_configuration_head_v1 *h=wlr_output_configuration_head_v1_create(c,o->wlr_output);if(!h)continue;struct wlr_box b;wlr_output_layout_get_box(s->output_layout,o->wlr_output,&b);h->state.enabled=o->wlr_output->enabled;h->state.x=b.x;h->state.y=b.y;h->state.mode=o->wlr_output->current_mode;h->state.scale=o->wlr_output->scale;h->state.transform=o->wlr_output->transform;}wlr_output_manager_v1_set_configuration(s->output_manager,c);}
 static void apply_cfg(struct wm_server *s,struct wlr_output_configuration_v1 *c,bool t){struct wlr_output_configuration_head_v1 *h;bool ok=true;wl_list_for_each(h,&c->heads,link){struct wlr_output *wo=h->state.output;struct wlr_output_state st;wlr_output_state_init(&st);wlr_output_state_set_enabled(&st,h->state.enabled);if(h->state.enabled){if(h->state.mode)wlr_output_state_set_mode(&st,h->state.mode);else wlr_output_state_set_custom_mode(&st,h->state.custom_mode.width,h->state.custom_mode.height,h->state.custom_mode.refresh);wlr_output_state_set_scale(&st,h->state.scale);wlr_output_state_set_transform(&st,h->state.transform);}if(t){if(!wlr_output_test_state(wo,&st))ok=false;}else if(!wlr_output_commit_state(wo,&st))ok=false;else if(h->state.enabled)wlr_output_layout_add(s->output_layout,wo,h->state.x,h->state.y);else wlr_output_layout_remove(s->output_layout,wo);wlr_output_state_finish(&st);}if(ok){wlr_output_configuration_v1_send_succeeded(c);if(!t){pub_cfg(s);wm_relayout_internal(s);}}else wlr_output_configuration_v1_send_failed(c);wlr_output_configuration_v1_destroy(c);}
 void server_output_manager_apply(struct wl_listener *l,void *d){struct wm_server *s=wl_container_of(l,s,output_manager_apply);apply_cfg(s,d,false);}

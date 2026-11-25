@@ -2,6 +2,7 @@
 
 #define AEROGLASS_WM_H
 
+
 #include <stdbool.h>
 
 #include <stdint.h>
@@ -14,9 +15,11 @@
 
 #include "toml.h"
 
+
 struct wm_server;
 
 struct wm_toplevel;
+
 
 struct wm_rect {
 
@@ -29,6 +32,7 @@ struct wm_rect {
     int h;
 
 };
+
 
 #define WM_MAX_AUTOSTART 32
 #define WM_MAX_WINDOW_RULES 64
@@ -104,6 +108,7 @@ struct wm_config {
 
 };
 
+
 struct wm_placement {
 
     struct wm_rect content;
@@ -113,6 +118,7 @@ struct wm_placement {
     bool active;
 
 };
+
 
 struct wm_hooks {
 
@@ -130,9 +136,11 @@ struct wm_hooks {
 
 };
 
+
 void wm_config_defaults(struct wm_config *config);
 
 void wm_config_load(struct wm_config *config, toml_table_t *conf);
+
 
 struct wm_server *wm_create(const struct wm_config *config);
 
@@ -144,6 +152,7 @@ void wm_run(struct wm_server *server);
 
 void wm_destroy(struct wm_server *server);
 
+
 void wm_set_hooks(struct wm_server *server, const struct wm_hooks *hooks, void *data);
 
 void wm_set_inset_bottom(struct wm_server *server, int pixels);
@@ -153,11 +162,13 @@ void wm_relayout(struct wm_server *server);
 
 void wm_foreach_toplevel(struct wm_server *server, void (*fn)(struct wm_toplevel *t, void *data), void *data);
 
+
 struct wlr_scene_tree *wm_overlay_tree(struct wm_server *server);
 
 double wm_cursor_x(struct wm_server *server);
 
 double wm_cursor_y(struct wm_server *server);
+
 
 void *wm_toplevel_userdata(struct wm_toplevel *t);
 
@@ -170,5 +181,6 @@ void wm_toplevel_toggle_fullscreen(struct wm_toplevel *t);
 void wm_toplevel_detach(struct wm_toplevel *t);
 
 void wm_execute_action(struct wm_server *server, struct wm_toplevel *t, const char *action);
+
 
 #endif

@@ -178,7 +178,6 @@ struct wm_toplevel {
     bool is_minimized;
     int workspace;
     int slot;
-    int rot_from_top;
     int grid_band;
     int grid_order;
     int gx, gy, gw, gh;
