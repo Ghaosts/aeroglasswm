@@ -39,4 +39,4 @@ Type=Application
 ```
 
 ## License
-Business Source License 1.1 (BSL 1.1) — transitioning to Apache License 2.0. See `LICENSE` for details.
+Business Source License 1.1 (BSL 1.1).
