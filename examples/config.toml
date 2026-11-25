@@ -3,12 +3,12 @@
 [general]
 layout = "desktop"
 workspaces = 9
-refresh_rate = 0
+refresh_rate = 165
 xkb_layout = "us,ru"
 xkb_options = "grp:alt_shift_toggle,grp:win_space_toggle"
 
 autostart = [
-  "swaybg -i /home/kalinin/Изображения/Linux.png -m fill",
+  "swaybg -i ~/Изображения/Linux.png -m fill",
   "waybar",
   "mako",
   "wl-paste --watch cliphist store"
@@ -18,7 +18,7 @@ autostart = [
 gap = 10
 gap_between = 20
 max_windows = 6
-preset = 0
+preset = 3
 vertical = 0
 lock = false
 hud_mode = "miniature"
@@ -31,8 +31,8 @@ border_width = 2
 anim_duration = 160
 blur = true
 blur_size = 6
-blur_passes = 3
-blur_layers = true
+blur_passes = 2
+blur_layers = false
 shadow = true
 shadow_range = 18
 active_opacity = 1.0
@@ -40,11 +40,11 @@ inactive_opacity = 0.94
 
 [decoration.colors]
 bg = "#14161ef2"
-border_active = "#4d99ffff"
+border_active = "#ffffffff"
 border_inactive = "#60657880"
 
 [slider]
-enabled = false
+enabled = true
 slider_w = 200
 slider_h = 20
 bar_h = 30
@@ -57,8 +57,8 @@ bar_radius = 12
 "Super+d" = "exec:rofi -show drun"
 "Super+e" = "exec:dolphin"
 "Super+b" = "exec:firefox"
-"Super+q" = "win_close"
-"Super+f" = "win_fullscreen"
+"Super+q" = "close"
+"Super+f" = "fullscreen"
 "Super+v" = "win_floating"
 "Super+c" = "win_center"
 "Super+r" = "grid_flip"
@@ -89,7 +89,7 @@ bar_radius = 12
 "Super+Shift+7" = "move_ws_7"
 "Super+Shift+8" = "move_ws_8"
 "Super+Shift+9" = "move_ws_9"
-"Print" = "exec:grim -g $(slurp) - | wl-copy"
+"Print" = "exec:~/.local/bin/ag-screenshot"
 "Super+Shift+s" = "exec:mkdir -p ~/Pictures && slurp | grim -g - ~/Pictures/shot_area.png"
 
 [[windowrule]]
