@@ -1058,6 +1058,7 @@ static void cursor_dispatch(struct wm_server *server, uint32_t time_msec) {
         wm_update_toplevel_border(t, t == server->active_toplevel);
         return;
     }
+#if 0 /* conserved: bottom-up fullscreen exit swipe */
     if (server->exit_fullscreen_dragging && server->dragging_toplevel) {
         struct wm_toplevel *t = server->dragging_toplevel;
         double dy = server->cursor->y - server->exit_fullscreen_start_y;
@@ -1069,6 +1070,7 @@ static void cursor_dispatch(struct wm_server *server, uint32_t time_msec) {
         }
         return;
     }
+#endif
     if (server->hooks.pointer_motion) {
         if (server->hooks.pointer_motion(server, time_msec, server->hooks_data)) return;
     }
@@ -1230,6 +1232,7 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
                 return;
             }
         }
+#if 0 /* conserved: bottom-up fullscreen exit swipe */
         if (server->active_toplevel && server->active_toplevel->is_fullscreen
                 && wl_list_empty(&server->outputs) == 0) {
             struct wm_output *o = wl_container_of(server->outputs.next, o, link);
@@ -1240,6 +1243,7 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
                 return;
             }
         }
+#endif
         if (server->hooks.pointer_button) {
             if (server->hooks.pointer_button(server, event, server->hooks_data)) return;
         }
@@ -1277,6 +1281,7 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
             }
             return;
         }
+#if 0 /* conserved: bottom-up fullscreen exit swipe */
         if (server->exit_fullscreen_dragging) {
             double dy = server->cursor->y - server->exit_fullscreen_start_y;
             server->exit_fullscreen_dragging = false;
@@ -1291,6 +1296,7 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
             }
             return;
         }
+#endif
         if (server->hooks.pointer_button) {
             if (server->hooks.pointer_button(server, event, server->hooks_data)) return;
         }
