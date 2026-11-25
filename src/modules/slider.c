@@ -744,6 +744,8 @@ static int slider_hover_tick(void *data) {
 
 static void slider_update_hover(struct slider *s, double cx, double cy) {
     if (!s->config.overlay_mode) return;
+    if (s->server && (s->server->active_constraint != NULL ||
+        (s->server->active_toplevel && s->server->active_toplevel->is_fullscreen))) return;
     bool need_timer = false;
     struct slider_view *v;
     wl_list_for_each(v, &s->views, link) {
