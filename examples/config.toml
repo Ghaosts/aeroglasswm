@@ -1,21 +1,9 @@
-# ==============================================================================
-#  AeroGlassWM — Универсальный конфигурационный файл
-#  Оглавление секций (используйте Ctrl+F для быстрого перехода):
-#    [general]            — Режим работы, рабочие столы, раскладка, автозапуск
-#    [grid]               — Сетка окон (3x2 / 2x2), отступы и мини-HUD
-#    [decoration]         — Тема, скругления, рамки, анимации, блюр и тени
-#    [decoration.colors]  — Цвета рамок и фона
-#    [slider]             — Нижний интерактивный слайдер (вкл/выкл, размеры)
-#    [slider.actions]     — Действия кликов и свайпов по слайдеру
-#    [slider.images]      — Кастомные текстуры (скины) для слайдера
-#    [hotkeys]            — Горячие клавиши (русская раскладка работает сама)
-#    [[windowrule]]       — Правила для отдельных окон (float, size, pin...)
-# ==============================================================================
+# AeroglassWM Configuration
 
 [general]
-layout = "desktop"              # "desktop" (ПК) или "mobile" (планшет/смартфон)
+layout = "desktop"
 workspaces = 9
-refresh_rate = 0                # Monitor refresh rate in Hz (0 = auto-max native)                  # Количество рабочих столов (1..16)
+refresh_rate = 0
 xkb_layout = "us,ru"
 xkb_options = "grp:alt_shift_toggle,grp:win_space_toggle"
 
@@ -23,88 +11,58 @@ autostart = [
   "swaybg -i /home/kalinin/Изображения/Linux.png -m fill",
   "waybar",
   "mako",
-  "wl-paste --watch cliphist store",
+  "wl-paste --watch cliphist store"
 ]
 
 [grid]
-preset = 3                      # 0: 1x1, 1: 2x1, 2: 2x2, 3: 3x2 (по умолчанию)
-vertical = 0                    # 0: горизонтальная сетка, 1: повёрнутая
-lock = false                    # true: запретить смену пресета колёсиком/Super+R
-max_windows = 0                 # 0: по размеру сетки (до 6), -1: без ограничений
-gap = 10                        # Внешний отступ от краёв экрана (px)
-gap_x = 20                      # Горизонтальный зазор между окнами (px)
-gap_y = 20                      # Вертикальный зазор между окнами (px)
-hud_mode = "miniature"          # "miniature" или "text"
-hud_radius = -1                 # -1: наследовать corner_radius
+gap = 10
+gap_between = 20
+max_windows = 6
+preset = 0
+vertical = 0
+lock = false
+hud_mode = "miniature"
+hud_radius = -1
 
 [decoration]
-theme = "dark"                  # "dark" или "light"
-corner_radius = 12              # Радиус скругления углов окон (px)
-border_width = 2                # Толщина рамки вокруг окна (px)
-anim_duration = 240             # Длительность анимаций (мс, 0 — выключить)
-blur = true                     # Размытие фона (SceneFX)
-blur_size = 7
+theme = "dark"
+corner_radius = 12
+border_width = 2
+anim_duration = 160
+blur = true
+blur_size = 6
 blur_passes = 3
-blur_layers = true              # Размытие для Waybar / Rofi / уведомлений
-shadow = true                   # Тени под окнами
+blur_layers = true
+shadow = true
 shadow_range = 18
-active_opacity = 1.0            # Прозрачность активного окна (0.1..1.0)
-inactive_opacity = 0.94         # Прозрачность неактивных окон (0.1..1.0)
+active_opacity = 1.0
+inactive_opacity = 0.94
 
 [decoration.colors]
-bg = [0.95, 0.95, 0.95, 1.0]
-border_active = [1.0, 1.0, 1.0, 0.95]
-border_inactive = [0.35, 0.35, 0.38, 0.45]
+bg = "#14161ef2"
+border_active = "#4d99ffff"
+border_inactive = "#60657880"
 
 [slider]
-enabled = false                 # true: включить нижний тач-слайдер, false: отключить
-bar_h = 30
+enabled = false
 slider_w = 200
 slider_h = 20
+bar_h = 30
 slider_radius = 10
 btn_radius = 8
 bar_radius = 12
-morph_radius = 100
-
-[slider.colors]
-bar = [0.04, 0.04, 0.05, 0.92]
-btn_fs = [0.22, 0.55, 0.98, 0.92]
-btn_close = [0.95, 0.28, 0.32, 0.92]
-
-[slider.actions]
-click_left = "fullscreen"
-click_right = "close"
-swipe_left = "fullscreen"
-swipe_right = "close"
-swipe_up = "detach"
-
-[slider.images]
-# bar = "~/.config/aeroglasswm/skins/default/bar.png"
-# slider = "~/.config/aeroglasswm/skins/default/slider.png"
-# btn_left = "~/.config/aeroglasswm/skins/default/left.png"
-# btn_right = "~/.config/aeroglasswm/skins/default/right.png"
 
 [hotkeys]
-# Приложения и система
 "Super+Return" = "exec:foot"
 "Super+d" = "exec:rofi -show drun"
 "Super+e" = "exec:dolphin"
-"Super+b" = "exec:MOZ_ENABLE_WAYLAND=1 firefox"
-"Super+Shift+e" = "exec:pkill -TERM aeroglasswm"
-
-# Окна и режимы
-"Super+q" = "close"
-"Super+m" = "fullscreen"
+"Super+b" = "exec:firefox"
+"Super+q" = "win_close"
+"Super+f" = "win_fullscreen"
 "Super+v" = "win_floating"
-"Super+f" = "ws_floating"
 "Super+c" = "win_center"
-
-# Сетка и стек
 "Super+r" = "grid_flip"
-"Super+bracketright" = "stack_next"
-"Super+bracketleft" = "stack_prev"
-
-# Фокус и перемещение окон
+"Super+Shift+r" = "exec:~/.local/bin/aeroglass-reload"
 "Super+Left" = "focus_left"
 "Super+Right" = "focus_right"
 "Super+Up" = "focus_up"
@@ -113,8 +71,6 @@ swipe_up = "detach"
 "Super+Shift+Right" = "swap_right"
 "Super+Shift+Up" = "swap_up"
 "Super+Shift+Down" = "swap_down"
-
-# Рабочие столы (1..9)
 "Super+1" = "ws_1"
 "Super+2" = "ws_2"
 "Super+3" = "ws_3"
@@ -133,27 +89,10 @@ swipe_up = "detach"
 "Super+Shift+7" = "move_ws_7"
 "Super+Shift+8" = "move_ws_8"
 "Super+Shift+9" = "move_ws_9"
-
-# Скриншоты и OCR
+"Print" = "exec:grim -g $(slurp) - | wl-copy"
 "Super+Shift+s" = "exec:mkdir -p ~/Pictures && slurp | grim -g - ~/Pictures/shot_area.png"
-"Print" = 'exec:mkdir -p ~/Pictures && grim -g "$(slurp -b 00000088 -c 89b4faff -B 00000044)" - | tee ~/Pictures/shot_$(date +%Y%m%d_%H%M%S).png | wl-copy && notify-send "Скриншот" "Скопировано в буфер и сохранено"'
-"Super+Shift+t" = 'exec:grim -g "$(slurp -b 00000088 -c a6e3a1ff)" - | tesseract stdin stdout -l rus+eng | wl-copy && notify-send "OCR" "Текст скопирован в буфер"'
-
-# Мультимедиа и яркость (безопасный лимит громкости 100%)
-"XF86AudioRaiseVolume" = "exec:wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
-"XF86AudioLowerVolume" = "exec:wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
-"XF86AudioMute" = "exec:wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-"XF86MonBrightnessUp" = "exec:brightnessctl set 5%+"
-"XF86MonBrightnessDown" = "exec:brightnessctl set 5%-"
-
-[[windowrule]]
-app_id = "pavucontrol"
-float = true
-size = [760, 480]
-center = true
 
 [[windowrule]]
 title = "Picture-in-Picture"
 float = true
 pin = true
-size = [480, 270]
