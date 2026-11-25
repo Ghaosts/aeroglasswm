@@ -14,12 +14,21 @@ A standalone, minimalist Wayland compositor built from scratch in C on **wlroots
 
 ## Dependencies (Arch / CachyOS)
 ```bash
-sudo pacman -S wlroots0.19 scenefx wayland wayland-protocols libxkbcommon cairo pango pixman
+sudo pacman -S wlroots0.19 scenefx wayland wayland-protocols libxkbcommon cairo pango pixman meson ninja
 ```
 
-## Installation (`v0.2.0-alpha`)
+## Build from Source
+```bash
+meson setup build --buildtype=release -Dstrip=true
+ninja -C build
+sudo install -Dm755 build/aeroglasswm build/wmctl /usr/local/bin/
+mkdir -p ~/.config/aeroglasswm
+cp examples/config.toml ~/.config/aeroglasswm/config.toml
+```
+
+## Binary Installation (`v0.2.0-alpha`)
 1. Download `aeroglasswm-v0.2.0-alpha-x86_64.tar.gz` from [GitHub Releases](https://github.com).
-2. Extract and install binaries and default configuration:
+2. Extract and install:
 ```bash
 tar -xzf aeroglasswm-v0.2.0-alpha-x86_64.tar.gz
 cd aeroglasswm-v0.2.0-alpha-x86_64

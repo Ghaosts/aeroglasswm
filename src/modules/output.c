@@ -1,0 +1,36 @@
+#include <stdlib.h>
+#include <time.h>
+#include <wlr/types/wlr_idle_inhibit_v1.h>
+#include <wlr/types/wlr_idle_notify_v1.h>
+#include <wlr/types/wlr_output.h>
+#include <wlr/types/wlr_output_layout.h>
+#include <wlr/types/wlr_output_management_v1.h>
+#include <scenefx/types/wlr_scene.h>
+#include "wm_internal.h"
+
+static void output_frame(struct wl_listener *l, void *d){
+    (void)d;
+    struct wm_output *o = wl_container_of(l, o, frame);
+    struct wlr_scene_output *so = wlr_scene_get_scene_output(o->server->scene, o->wlr_output);
+    if (!so) return;
+    wlr_scene_output_commit(so, NULL);
+    static bool first_frame_cursor = false;
+    if (!first_frame_cursor && o->server && o->server->cursor && o->server->cursor_mgr) {
+        first_frame_cursor = true;
+        o->server->cursor_hidden = false;
+        wlr_cursor_set_xcursor(o->server->cursor, o->server->cursor_mgr, "default");
+    }
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    wlr_scene_output_send_frame_done(so, &t);
+}
+static void pub_cfg(struct wm_server *s){if(!s->output_manager)return;struct wlr_output_configuration_v1 *c=wlr_output_configuration_v1_create();if(!c)return;struct wm_output *o;wl_list_for_each(o,&s->outputs,link){struct wlr_output_configuration_head_v1 *h=wlr_output_configuration_head_v1_create(c,o->wlr_output);if(!h)continue;struct wlr_box b;wlr_output_layout_get_box(s->output_layout,o->wlr_output,&b);h->state.enabled=o->wlr_output->enabled;h->state.x=b.x;h->state.y=b.y;h->state.mode=o->wlr_output->current_mode;h->state.scale=o->wlr_output->scale;h->state.transform=o->wlr_output->transform;}wlr_output_manager_v1_set_configuration(s->output_manager,c);}
+static void apply_cfg(struct wm_server *s,struct wlr_output_configuration_v1 *c,bool t){struct wlr_output_configuration_head_v1 *h;bool ok=true;wl_list_for_each(h,&c->heads,link){struct wlr_output *wo=h->state.output;struct wlr_output_state st;wlr_output_state_init(&st);wlr_output_state_set_enabled(&st,h->state.enabled);if(h->state.enabled){if(h->state.mode)wlr_output_state_set_mode(&st,h->state.mode);else wlr_output_state_set_custom_mode(&st,h->state.custom_mode.width,h->state.custom_mode.height,h->state.custom_mode.refresh);wlr_output_state_set_scale(&st,h->state.scale);wlr_output_state_set_transform(&st,h->state.transform);}if(t){if(!wlr_output_test_state(wo,&st))ok=false;}else if(!wlr_output_commit_state(wo,&st))ok=false;else if(h->state.enabled)wlr_output_layout_add(s->output_layout,wo,h->state.x,h->state.y);else wlr_output_layout_remove(s->output_layout,wo);wlr_output_state_finish(&st);}if(ok){wlr_output_configuration_v1_send_succeeded(c);if(!t){pub_cfg(s);wm_relayout_internal(s);}}else wlr_output_configuration_v1_send_failed(c);wlr_output_configuration_v1_destroy(c);}
+void server_output_manager_apply(struct wl_listener *l,void *d){struct wm_server *s=wl_container_of(l,s,output_manager_apply);apply_cfg(s,d,false);}
+void server_output_manager_test(struct wl_listener *l,void *d){struct wm_server *s=wl_container_of(l,s,output_manager_test);apply_cfg(s,d,true);}
+void wm_update_idle_inhibit(struct wm_server *s,struct wlr_idle_inhibitor_v1 *ex){if(!s->idle_notifier||!s->idle_inhibit)return;bool inh=false;struct wlr_idle_inhibitor_v1 *i;wl_list_for_each(i,&s->idle_inhibit->inhibitors,link)if(i!=ex){inh=true;break;}wlr_idle_notifier_v1_set_inhibited(s->idle_notifier,inh);}
+static void inh_del(struct wl_listener *l,void *d){(void)d;wl_list_remove(&l->link);free(l);}
+void server_new_idle_inhibitor(struct wl_listener *l,void *d){struct wm_server *s=wl_container_of(l,s,new_idle_inhibitor);struct wlr_idle_inhibitor_v1 *i=d;wm_update_idle_inhibit(s,NULL);struct wl_listener *dl=calloc(1,sizeof(*dl));if(dl){dl->notify=inh_del;wl_signal_add(&i->events.destroy,dl);}}
+static void out_req(struct wl_listener *l,void *d){struct wm_output *o=wl_container_of(l,o,request_state);wlr_output_commit_state(o->wlr_output,((const struct wlr_output_event_request_state*)d)->state);pub_cfg(o->server);wm_relayout_internal(o->server);}
+static void out_del(struct wl_listener *l,void *d){(void)d;struct wm_output *o=wl_container_of(l,o,destroy);struct wm_server *s=o->server;wl_list_remove(&o->frame.link);wl_list_remove(&o->request_state.link);wl_list_remove(&o->destroy.link);wl_list_remove(&o->link);free(o);pub_cfg(s);wm_relayout_internal(s);}
+void server_new_output(struct wl_listener *l,void *d){struct wm_server *s=wl_container_of(l,s,new_output);struct wlr_output *wo=d;wlr_output_init_render(wo,s->allocator,s->renderer);struct wlr_output_state st;wlr_output_state_init(&st);wlr_output_state_set_enabled(&st,true);struct wlr_output_mode *b=wlr_output_preferred_mode(wo);if(s->config.refresh_rate>0){int tg=s->config.refresh_rate*1000;struct wlr_output_mode *m;wl_list_for_each(m,&wo->modes,link)if(abs(m->refresh-tg)<=1500&&(!b||(m->width>=b->width&&m->height>=b->height)))b=m;}if(b)wlr_output_state_set_mode(&st,b);wlr_output_commit_state(wo,&st);wlr_output_state_finish(&st);struct wm_output *o=calloc(1,sizeof(*o));if(!o)return;o->wlr_output=wo;o->server=s;o->last_width=wm_output_width(wo);o->last_height=wm_output_height(wo);o->frame.notify=output_frame;wl_signal_add(&wo->events.frame,&o->frame);o->request_state.notify=out_req;wl_signal_add(&wo->events.request_state,&o->request_state);o->destroy.notify=out_del;wl_signal_add(&wo->events.destroy,&o->destroy);wl_list_insert(&s->outputs,&o->link);struct wlr_output_layout_output *lo=wlr_output_layout_add_auto(s->output_layout,wo);struct wlr_scene_output *so=wlr_scene_output_create(s->scene,wo);if(lo&&so)wlr_scene_output_layout_add_output(s->scene_layout,lo,so);pub_cfg(s);wm_relayout_internal(s);}

@@ -1,0 +1,1 @@
+option('slider', type: 'boolean', value: false, description: 'Build the pluggable slider UI module')
