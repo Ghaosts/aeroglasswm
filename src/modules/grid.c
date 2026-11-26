@@ -82,7 +82,6 @@ void grid_cell(const struct wm_server *s, int sw, int sh, int slot, struct wm_re
     cell->h = (y1 - y0 > 1) ? (y1 - y0) : 1;
 }
 
-
 static void grid_sort_band(struct wm_toplevel **arr, int n, bool vert) {
     for (int i = 0; i < n; i++)
         for (int j = i + 1; j < n; j++) {
@@ -92,49 +91,43 @@ static void grid_sort_band(struct wm_toplevel **arr, int n, bool vert) {
         }
 }
 
-static void grid_apply_band(struct wm_toplevel **arr, int n, int b0, int bw, bool vert) {
-    if (n <= 0) return;
-    grid_sort_band(arr, n, vert);
-    for (int i = 0; i < n; i++) {
-        int p0 = (i * 1000) / n;
-        int p1 = ((i + 1) * 1000) / n;
-        if (!vert) {
-            arr[i]->gx = p0; arr[i]->gw = p1 - p0;
-            arr[i]->gy = b0; arr[i]->gh = bw;
-        } else {
-            arr[i]->gx = b0; arr[i]->gw = bw;
-            arr[i]->gy = p0; arr[i]->gh = p1 - p0;
-        }
-    }
-}
-
-static void grid_normalize_3x2(struct wm_server *s, int ws) {
-    bool vert = (s->grid.vertical != 0);
-    struct wm_toplevel *b0[16], *b1[16], *t;
+void grid_normalize_3x2(struct wm_server *s, int ws) {
+    typedef struct wm_toplevel *wptr;
+    wptr *b0 = __builtin_alloca(16 * sizeof(wptr));
+    wptr *b1 = __builtin_alloca(16 * sizeof(wptr));
+    struct wm_toplevel *t;
     int n0 = 0, n1 = 0;
+    bool vert = (s->grid.vertical != 0);
     wl_list_for_each(t, &s->toplevels, link) {
         if (!t->in_list || t->is_floating || t->is_minimized || t->workspace != ws) continue;
         int mid = vert ? (t->gx + t->gw / 2) : (t->gy + t->gh / 2);
-        if (mid < 500) { if (n0 < 16) b0[n0++] = t; }
-        else { if (n1 < 16) b1[n1++] = t; }
+        if (mid < 500) { if (n0 < 16) *(b0 + n0++) = t; }
+        else { if (n1 < 16) *(b1 + n1++) = t; }
     }
-    if (n0 + n1 == 0) return;
-    if (n0 + n1 == 4 && (n0 == 3 || n1 == 3)) {
-        if (n0 == 3) {
-            grid_sort_band(b0, n0, vert);
-            b1[n1++] = b0[2];
-            n0 = 2;
-        } else {
-            grid_sort_band(b1, n1, vert);
-            b0[n0++] = b1[0];
-            b1[0] = b1[1]; b1[1] = b1[2];
-            n1 = 2;
+    grid_sort_band(b0, n0, vert);
+    grid_sort_band(b1, n1, vert);
+    if (n0 + n1 == 4 && s->grid.preset >= 2) {
+        if (n0 == 3 && n1 == 1) { *(b1 + n1++) = *(b0 + --n0); grid_sort_band(b1, n1, vert); }
+        else if (n1 == 3 && n0 == 1) { *(b0 + n0++) = *(b1 + --n1); grid_sort_band(b0, n0, vert); }
+    }
+    if (n0 > 0) {
+        int step = 1000 / n0;
+        for (int i = 0; i < n0; i++) {
+            wptr w = *(b0 + i);
+            int pos = i * step, sz = (i == n0 - 1) ? (1000 - pos) : step;
+            if (!vert) { w->gx = pos; w->gy = 0; w->gw = sz; w->gh = 500; }
+            else { w->gx = 0; w->gy = pos; w->gw = 500; w->gh = sz; }
         }
     }
-    if (n0 == 0) { grid_apply_band(b1, n1, 0, 1000, vert); return; }
-    if (n1 == 0) { grid_apply_band(b0, n0, 0, 1000, vert); return; }
-    grid_apply_band(b0, n0, 0, 500, vert);
-    grid_apply_band(b1, n1, 500, 500, vert);
+    if (n1 > 0) {
+        int step = 1000 / n1;
+        for (int i = 0; i < n1; i++) {
+            wptr w = *(b1 + i);
+            int pos = i * step, sz = (i == n1 - 1) ? (1000 - pos) : step;
+            if (!vert) { w->gx = pos; w->gy = 500; w->gw = sz; w->gh = 500; }
+            else { w->gx = 500; w->gy = pos; w->gw = 500; w->gh = sz; }
+        }
+    }
 }
 
 static bool grid_try_merge_hole(struct wm_server *s, int ws, int hx, int hy, int hw, int hh) {
@@ -210,7 +203,6 @@ void grid_place_at_cursor(struct wm_server *s, struct wm_toplevel *target) {
     if (cy_n < 0) cy_n = 0;
     if (cy_n > 999) cy_n = 999;
 
-    /* Невидимые сектора 3x2 (или 2x3 при повороте) при 5 или 6 окнах */
     if (s->grid.preset == 3 && vis >= 4) {
         bool vert = (s->grid.vertical != 0);
         int band_pos = vert ? cx_n : cy_n;
@@ -234,7 +226,6 @@ void grid_place_at_cursor(struct wm_server *s, struct wm_toplevel *target) {
         int bn = in_b0 ? n0 : n1;
         grid_sort_band(band, bn, vert);
 
-        /* Размещаем новое окно строго в выбранный сектор (0, 1 или 2) */
         for (int i = 0; i < bn; i++) {
             int slot_i = (i < sec) ? i : (i + 1);
             int coord = slot_i * 333 + 10;
@@ -273,6 +264,10 @@ void grid_place_at_cursor(struct wm_server *s, struct wm_toplevel *target) {
     int px_w = (hit->gw * (uw > 0 ? uw : 1920)) / 1000;
     int px_h = (hit->gh * (uh > 0 ? uh : 1080)) / 1000;
     bool split_v = (vis == 1) ? (dx * dx >= dy * dy) : (px_w >= px_h);
+    if (vis == 2 && s->grid.preset >= 2) {
+        if (hit->gw <= 550 && hit->gh >= 900) split_v = false;
+        else if (hit->gh <= 550 && hit->gw >= 900) split_v = true;
+    }
     if (s->grid.preset == 1) split_v = !s->grid.vertical;
 
     if (split_v) {
@@ -298,6 +293,7 @@ void grid_place_at_cursor(struct wm_server *s, struct wm_toplevel *target) {
             hit->gh = h1;
         }
     }
+    if (vis + 1 == 4 && s->grid.preset >= 2) grid_normalize_3x2(s, ws);
 }
 
 struct grid_text_buf { struct wlr_buffer base; cairo_surface_t *surface; void *data; size_t stride; };
@@ -374,7 +370,6 @@ static void grid_show_hud(struct wm_server *s) {
 void grid_refresh_hud(struct wm_server *s) { if (s && s->grid.hud_tree) grid_show_hud(s); }
 void grid_on_super_release(struct wm_server *s) { if (s->grid.hud_timer) wl_event_source_timer_update(s->grid.hud_timer, 0); if (s->grid.hud_tree) { wlr_scene_node_destroy(&s->grid.hud_tree->node); s->grid.hud_tree = NULL; } }
 
-
 static void grid_apply_bounds(struct wm_server *s) {
     int cap = grid_effective_capacity(s), shown = 0; struct wm_toplevel *t;
     wl_list_for_each(t, &s->toplevels, link) {
@@ -420,13 +415,115 @@ void grid_cycle_preset(struct wm_server *s, int delta) {
 
 void grid_toggle_orientation(struct wm_server *s) {
     if (s->config.grid_lock) { grid_show_hud(s); return; }
-    s->grid.vertical = s->grid.vertical ? 0 : 1;
+    typedef struct wm_toplevel *wptr;
+    int ws = s->active_workspace;
+    wptr *wins = __builtin_alloca(32 * sizeof(wptr));
     struct wm_toplevel *t;
+    int n = 0;
     wl_list_for_each(t, &s->toplevels, link) {
-        if (!t->in_list || t->is_floating || t->is_minimized || t->workspace != s->active_workspace) continue;
-        int ox = t->gx, ow = t->gw;
-        t->gx = t->gy; t->gw = t->gh;
-        t->gy = ox; t->gh = ow;
+        if (!t->in_list || t->is_floating || t->is_minimized || t->workspace != ws) continue;
+        if (n < 32) *(wins + n++) = t;
+    }
+    bool to_vert = (s->grid.vertical == 0);
+    s->grid.vertical = to_vert ? 1 : 0;
+
+    if (n <= 1 || n == 4) {
+
+    } else if (n == 2) {
+        grid_sort_band(wins, 2, !to_vert);
+        wptr w0 = *(wins + 0), w1 = *(wins + 1);
+        if (to_vert) {
+            w0->gx = 0; w0->gy = 0; w0->gw = 1000; w0->gh = 500;
+            w1->gx = 0; w1->gy = 500; w1->gw = 1000; w1->gh = 500;
+        } else {
+            w0->gx = 0; w0->gy = 0; w0->gw = 500; w0->gh = 1000;
+            w1->gx = 500; w1->gy = 0; w1->gw = 500; w1->gh = 1000;
+        }
+    } else if (n == 3) {
+        wptr win_a = NULL, win_b = NULL, win_c = NULL;
+        for (int i = 0; i < n; i++) {
+            wptr w = *(wins + i);
+            if (w->gx < 250 && w->gy < 250) win_a = w;
+            else if (w->gx >= 250 && w->gy < 250) win_b = w;
+            else win_c = w;
+        }
+        if (!win_a) win_a = *(wins + 0);
+        if (!win_b) win_b = (*(wins + 0) != win_a) ? *(wins + 0) : *(wins + 1);
+        if (!win_c) {
+            for (int i = 0; i < n; i++) {
+                wptr w = *(wins + i);
+                if (w != win_a && w != win_b) { win_c = w; break; }
+            }
+        }
+        if (to_vert) {
+            win_a->gx = 0; win_a->gy = 0; win_a->gw = 500; win_a->gh = 500;
+            win_b->gx = 500; win_b->gy = 0; win_b->gw = 500; win_b->gh = 500;
+            win_c->gx = 0; win_c->gy = 500; win_c->gw = 1000; win_c->gh = 500;
+        } else {
+            win_a->gx = 0; win_a->gy = 0; win_a->gw = 500; win_a->gh = 1000;
+            win_b->gx = 500; win_b->gy = 0; win_b->gw = 500; win_b->gh = 500;
+            win_c->gx = 500; win_c->gy = 500; win_c->gw = 500; win_c->gh = 500;
+        }
+    } else if (n == 5 || n == 6) {
+        wptr *b0 = __builtin_alloca(16 * sizeof(wptr));
+        wptr *b1 = __builtin_alloca(16 * sizeof(wptr));
+        int n0 = 0, n1 = 0;
+        for (int i = 0; i < n; i++) {
+            wptr w = *(wins + i);
+            int mid = to_vert ? (w->gy + w->gh / 2) : (w->gx + w->gw / 2);
+            if (mid < 500) *(b0 + n0++) = w; else *(b1 + n1++) = w;
+        }
+        grid_sort_band(b0, n0, !to_vert);
+        grid_sort_band(b1, n1, !to_vert);
+
+        if (to_vert) {
+            wptr *c0 = __builtin_alloca(16 * sizeof(wptr));
+            wptr *c1 = __builtin_alloca(16 * sizeof(wptr));
+            int nc0 = 0, nc1 = 0;
+            if (n0 > 0) *(c0 + nc0++) = *(b0 + 0);
+            if (n1 > 0) *(c0 + nc0++) = *(b1 + 0);
+            if (n0 > 1) *(c1 + nc1++) = *(b0 + 1);
+            if (n1 > 1) *(c1 + nc1++) = *(b1 + 1);
+            if (n0 >= 3) *(c1 + nc1++) = *(b0 + 2);
+            if (n1 >= 3) *(c0 + nc0++) = *(b1 + 2);
+            for (int i = 0; i < nc0; i++) {
+                wptr w = *(c0 + i);
+                int step = 1000 / nc0, pos = i * step;
+                w->gx = 0; w->gy = pos; w->gw = 500; w->gh = (i == nc0 - 1) ? (1000 - pos) : step;
+            }
+            for (int i = 0; i < nc1; i++) {
+                wptr w = *(c1 + i);
+                int step = 1000 / nc1, pos = i * step;
+                w->gx = 500; w->gy = pos; w->gw = 500; w->gh = (i == nc1 - 1) ? (1000 - pos) : step;
+            }
+        } else {
+            wptr *r0 = __builtin_alloca(16 * sizeof(wptr));
+            wptr *r1 = __builtin_alloca(16 * sizeof(wptr));
+            int nr0 = 0, nr1 = 0;
+            if (n0 > 0) *(r0 + nr0++) = *(b0 + 0);
+            if (n1 > 0) *(r0 + nr0++) = *(b1 + 0);
+            if (n0 > 1) *(r1 + nr1++) = *(b0 + 1);
+            if (n1 > 1) *(r1 + nr1++) = *(b1 + 1);
+            if (n1 >= 3) *(r0 + nr0++) = *(b1 + 2);
+            if (n0 >= 3) *(r1 + nr1++) = *(b0 + 2);
+            for (int i = 0; i < nr0; i++) {
+                wptr w = *(r0 + i);
+                int step = 1000 / nr0, pos = i * step;
+                w->gx = pos; w->gy = 0; w->gw = (i == nr0 - 1) ? (1000 - pos) : step; w->gh = 500;
+            }
+            for (int i = 0; i < nr1; i++) {
+                wptr w = *(r1 + i);
+                int step = 1000 / nr1, pos = i * step;
+                w->gx = pos; w->gy = 500; w->gw = (i == nr1 - 1) ? (1000 - pos) : step; w->gh = 500;
+            }
+        }
+    } else {
+        for (int i = 0; i < n; i++) {
+            wptr w = *(wins + i);
+            int ox = w->gx, ow = w->gw;
+            w->gx = w->gy; w->gw = w->gh;
+            w->gy = ox; w->gh = ow;
+        }
     }
     wm_relayout_internal(s); grid_show_hud(s);
 }
@@ -583,6 +680,28 @@ void grid_swap_windows(struct wm_server *s, struct wm_toplevel *a, struct wm_top
             else { a->gx = 0; a->gy = 500; a->gw = 1000; a->gh = 500; b->gx = 0; b->gy = 0; b->gw = 1000; b->gh = 500; }
         }
         return;
+    }
+    if (s && grid_count_tiled_ws(s, s->active_workspace) == 3 && (b->gw > 600 || b->gh > 600) && a->gw <= 600 && a->gh <= 600) {
+        int ux, uy, uw, uh; grid_usable_box(s, &ux, &uy, &uw, &uh);
+        int cx_n = (int)(((s->cursor->x - ux) * 1000.0) / (uw > 0 ? uw : 1));
+        int cy_n = (int)(((s->cursor->y - uy) * 1000.0) / (uh > 0 ? uh : 1));
+        struct wm_toplevel *c = NULL, *t;
+        wl_list_for_each(t, &s->toplevels, link)
+            if (t != a && t != b && t->in_list && !t->is_floating && !t->is_minimized && t->workspace == s->active_workspace) { c = t; break; }
+        if (c) {
+            if (b->gw > 600) {
+                bool first = cx_n < 500;
+                a->gx = first ? 0 : 500; a->gy = b->gy; a->gw = 500; a->gh = 500;
+                b->gx = first ? 500 : 0; b->gw = 500; b->gh = 500;
+                c->gx = 0; c->gy = 500 - b->gy; c->gw = 1000; c->gh = 500;
+            } else {
+                bool first = cy_n < 500;
+                a->gx = b->gx; a->gy = first ? 0 : 500; a->gw = 500; a->gh = 500;
+                b->gy = first ? 500 : 0; b->gw = 500; b->gh = 500;
+                c->gx = 500 - b->gx; c->gy = 0; c->gw = 500; c->gh = 1000;
+            }
+            return;
+        }
     }
     int tx = a->gx, ty = a->gy, tw = a->gw, th = a->gh;
     a->gx = b->gx; a->gy = b->gy; a->gw = b->gw; a->gh = b->gh;
