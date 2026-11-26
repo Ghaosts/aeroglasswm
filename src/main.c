@@ -21,7 +21,7 @@ static void default_config_path(char *out, size_t cap) {
     snprintf(out, cap, "%s/aeroglasswm/config.toml", base);
     FILE *f = fopen(out, "r");
     if (f) { fclose(f); return; }
-    char legacy[512];
+    char legacy[1024];
     snprintf(legacy, sizeof(legacy), "%s/aeroglass/config.toml", base);
     f = fopen(legacy, "r");
     if (f) { fclose(f); snprintf(out, cap, "%s", legacy); }
