@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/c27e39c9-c254-45d0-a4b5-c42376b05f11
+
 # AeroglassWM
 
 A standalone, minimalist Wayland compositor built from scratch in C on **wlroots 0.19** and **SceneFX 0.4**.
