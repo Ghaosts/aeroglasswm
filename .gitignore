@@ -6,11 +6,8 @@ build-asan/
 
 # ИСХОДНЫЙ КОД (Проприетарный)
 src/
-include/
 backups/
 history/
-protocols/
-shaders/
 *.c
 *.h
 meson.build
