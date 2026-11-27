@@ -28,6 +28,10 @@ int grid_cols(const struct wm_server *s) { int c, r; grid_base_dims(s, &c, &r); 
 int grid_rows(const struct wm_server *s) { int c, r; grid_base_dims(s, &c, &r); return s->grid.vertical ? c : r; }
 
 int grid_effective_capacity(const struct wm_server *s) {
+    if (s->active_workspace >= 0 && s->active_workspace < 16 && s->workspace_group_owner[s->active_workspace] > 0) return 6;
+    if (s->grid.preset == 0) return 1;
+    if (s->grid.preset == 1) return 2;
+    if (s->grid.preset == 2) return 4;
     if (s->config.max_windows < 0) return WM_MAX_SLOTS;
     if (s->config.max_windows > 0) return s->config.max_windows > WM_MAX_SLOTS ? WM_MAX_SLOTS : s->config.max_windows;
     int cap = grid_cols(s) * grid_rows(s);
@@ -93,6 +97,26 @@ static void grid_sort_band(struct wm_toplevel **arr, int n, bool vert) {
 
 void grid_normalize_3x2(struct wm_server *s, int ws) {
     typedef struct wm_toplevel *wptr;
+    if (s->grid.preset == 0 || s->grid.preset == 1) {
+        wptr *arr = __builtin_alloca(16 * sizeof(wptr));
+        struct wm_toplevel *t; int n = 0;
+        bool vert = (s->grid.vertical != 0);
+        wl_list_for_each(t, &s->toplevels, link)
+            if (t->in_list && !t->is_floating && !t->is_minimized && t->workspace == ws && n < 16) *(arr + n++) = t;
+        if (n <= 1 || s->grid.preset == 0) {
+            if (n > 0) { (*arr)->gx = 0; (*arr)->gy = 0; (*arr)->gw = 1000; (*arr)->gh = 1000; }
+            return;
+        }
+        grid_sort_band(arr, n, vert);
+        int show = n > 2 ? 2 : n;
+        for (int i = 0; i < show; i++) {
+            wptr w = *(arr + i);
+            int pos = i * 500;
+            if (!vert) { w->gx = pos; w->gy = 0; w->gw = 500; w->gh = 1000; }
+            else { w->gx = 0; w->gy = pos; w->gw = 1000; w->gh = 500; }
+        }
+        return;
+    }
     wptr *b0 = __builtin_alloca(16 * sizeof(wptr));
     wptr *b1 = __builtin_alloca(16 * sizeof(wptr));
     struct wm_toplevel *t;
@@ -111,21 +135,21 @@ void grid_normalize_3x2(struct wm_server *s, int ws) {
         else if (n1 == 3 && n0 == 1) { *(b0 + n0++) = *(b1 + --n1); grid_sort_band(b0, n0, vert); }
     }
     if (n0 > 0) {
-        int step = 1000 / n0;
+        int step = 1000 / n0, full = (n1 == 0) ? 1000 : 500;
         for (int i = 0; i < n0; i++) {
             wptr w = *(b0 + i);
             int pos = i * step, sz = (i == n0 - 1) ? (1000 - pos) : step;
-            if (!vert) { w->gx = pos; w->gy = 0; w->gw = sz; w->gh = 500; }
-            else { w->gx = 0; w->gy = pos; w->gw = 500; w->gh = sz; }
+            if (!vert) { w->gx = pos; w->gy = 0; w->gw = sz; w->gh = full; }
+            else { w->gx = 0; w->gy = pos; w->gw = full; w->gh = sz; }
         }
     }
     if (n1 > 0) {
-        int step = 1000 / n1;
+        int step = 1000 / n1, off = (n0 == 0) ? 0 : 500, full = (n0 == 0) ? 1000 : 500;
         for (int i = 0; i < n1; i++) {
             wptr w = *(b1 + i);
             int pos = i * step, sz = (i == n1 - 1) ? (1000 - pos) : step;
-            if (!vert) { w->gx = pos; w->gy = 500; w->gw = sz; w->gh = 500; }
-            else { w->gx = 500; w->gy = pos; w->gw = 500; w->gh = sz; }
+            if (!vert) { w->gx = pos; w->gy = off; w->gw = sz; w->gh = full; }
+            else { w->gx = off; w->gy = pos; w->gw = full; w->gh = sz; }
         }
     }
 }
@@ -188,8 +212,16 @@ void grid_place_at_cursor(struct wm_server *s, struct wm_toplevel *target) {
     wl_list_for_each(t, &s->toplevels, link)
         if (t != target && t->in_list && !t->is_floating && !t->is_minimized && t->workspace == ws) vis++;
     if (vis >= cap) {
-        int fws = grid_find_free_normal_ws(s, ws, cap);
-        if (fws >= 0) { target->workspace = fws; s->active_workspace = fws; ws = fws; vis = 0; }
+        int fws = grid_find_free_normal_ws(s, ws, 1);
+        if (fws < 0 && s->config.workspaces < 16) {
+            fws = s->config.workspaces++;
+        }
+        if (fws >= 0) {
+            target->workspace = fws;
+            s->active_workspace = fws;
+            ws = fws;
+            vis = 0;
+        }
     }
     if (vis == 0) {
         target->gx = 0; target->gy = 0; target->gw = 1000; target->gh = 1000;
@@ -371,25 +403,57 @@ void grid_refresh_hud(struct wm_server *s) { if (s && s->grid.hud_tree) grid_sho
 void grid_on_super_release(struct wm_server *s) { if (s->grid.hud_timer) wl_event_source_timer_update(s->grid.hud_timer, 0); if (s->grid.hud_tree) { wlr_scene_node_destroy(&s->grid.hud_tree->node); s->grid.hud_tree = NULL; } }
 
 static void grid_apply_bounds(struct wm_server *s) {
+    if (s->active_workspace >= 0 && s->active_workspace < 16 && s->workspace_group_owner[s->active_workspace] > 0) {
+        grid_show_hud(s); return;
+    }
     int cap = grid_effective_capacity(s), shown = 0; struct wm_toplevel *t;
-    wl_list_for_each(t, &s->toplevels, link) {
-        if (!t->in_list || t->is_floating || t->workspace != s->active_workspace) continue;
-        if (!t->is_minimized) {
-            if (shown < cap) shown++;
-            else {
-                int pws = grid_find_penalty_ws(s, s->active_workspace, cap);
-                if (pws >= 0) { t->workspace = pws; t->slot = -1; } else t->is_minimized = true;
-                wm_hide_toplevel_internal(t);
-            }
+    int total_vis = 0;
+    wl_list_for_each(t, &s->toplevels, link)
+        if (t->in_list && !t->is_floating && !t->is_minimized && t->workspace == s->active_workspace) total_vis++;
+    wl_list_for_each_reverse(t, &s->toplevels, link) {
+        if (!t->in_list || t->is_floating || t->is_minimized || t->workspace != s->active_workspace) continue;
+        if (total_vis > cap) {
+            int pws = grid_find_penalty_ws(s, s->active_workspace, cap);
+            if (pws >= 0) { t->workspace = pws; t->slot = -1; } else t->is_minimized = true;
+            wm_hide_toplevel_internal(t);
+            total_vis--;
         }
     }
+    shown = total_vis;
     if (shown < cap) wl_list_for_each(t, &s->toplevels, link) {
         if (shown >= cap) break;
         if (t->in_list && !t->is_floating && t->workspace == s->active_workspace && t->is_minimized) {
             t->is_minimized = false; t->slot = -1; shown++;
         }
     }
+    int before_reclaim = grid_count_tiled_ws(s, s->active_workspace);
     grid_reclaim_penalty(s, s->active_workspace);
+    int after_reclaim = grid_count_tiled_ws(s, s->active_workspace);
+    if (before_reclaim == 4 && after_reclaim == 4 && s->grid.preset >= 2) {
+        grid_normalize_3x2(s, s->active_workspace);
+        wm_relayout_internal(s); grid_show_hud(s); return;
+    }
+    for (int pw = 0; pw < 16; pw++) {
+        if (s->workspace_group_owner[pw] == s->active_workspace + 1 && grid_count_tiled_ws(s, pw) > 0) {
+            int pidx = 0, pcols = 2, prows = 2, pcnt = grid_count_tiled_ws(s, pw);
+            if (pcnt <= 1) { pcols = 1; prows = 1; }
+            else if (pcnt == 2) { pcols = 2; prows = 1; }
+            else if (pcnt > 4) { pcols = 3; prows = 2; }
+            struct wm_toplevel *pt;
+            wl_list_for_each(pt, &s->toplevels, link) {
+                if (!pt->in_list || pt->is_floating || pt->is_minimized || pt->workspace != pw) continue;
+                int pr = (pidx / pcols) % prows, pc = pidx % pcols;
+                pt->gx = (pc * 1000) / pcols; pt->gw = ((pc + 1) * 1000) / pcols - pt->gx;
+                pt->gy = (pr * 1000) / prows; pt->gh = ((pr + 1) * 1000) / prows - pt->gy;
+                pidx++;
+            }
+            if (pcnt == 3 || pcnt >= 4) {
+                int saved_p = s->grid.preset; s->grid.preset = (pcnt <= 4) ? 2 : 3;
+                grid_normalize_3x2(s, pw);
+                s->grid.preset = saved_p;
+            }
+        }
+    }
     int idx = 0, rows = grid_rows(s), cols = grid_cols(s);
     if (rows < 1) rows = 1;
     if (cols < 1) cols = 1;
@@ -550,9 +614,22 @@ void grid_on_toplevel_remove(struct wm_server *s, struct wm_toplevel *closing) {
     bool was_tiled = (!closing->is_floating && !closing->is_minimized);
     if (!closing->is_floating) {
         wl_list_remove(&closing->link); closing->in_list = false;
-        grid_reclaim_penalty(s, ws);
     }
-    if (!was_tiled) return;
+    if (!was_tiled) { grid_reclaim_penalty(s, ws); return; }
+    int cap = grid_effective_capacity(s), total = s->config.workspaces > 16 ? 16 : s->config.workspaces;
+    if (grid_count_tiled_ws(s, ws) < cap && hw > 0 && hh > 0) {
+        struct wm_toplevel *cand = NULL, *t; int found_ws = -1;
+        for (int w = total - 1; w >= 0 && !cand; w--) {
+            if (w == ws || s->workspace_group_owner[w] != ws + 1) continue;
+            wl_list_for_each_reverse(t, &s->toplevels, link) if (t->in_list && t->workspace == w) { cand = t; found_ws = w; break; }
+        }
+        if (cand) {
+            cand->workspace = ws; cand->is_floating = false; cand->is_minimized = false;
+            cand->gx = hx; cand->gy = hy; cand->gw = hw; cand->gh = hh;
+            if (grid_count_on_ws(s, found_ws) == 0) s->workspace_group_owner[found_ws] = 0;
+            return;
+        }
+    }
     int rem = grid_count_tiled_ws(s, ws);
     if (rem <= 0) return;
     if (rem == 1) {
@@ -561,7 +638,7 @@ void grid_on_toplevel_remove(struct wm_server *s, struct wm_toplevel *closing) {
             if (t->in_list && !t->is_floating && !t->is_minimized && t->workspace == ws) { t->gx = 0; t->gy = 0; t->gw = 1000; t->gh = 1000; break; }
         return;
     }
-    if ((s->grid.preset == 3 && rem >= 4) || !grid_try_merge_hole(s, ws, hx, hy, hw, hh)) {
+    if (s->grid.preset == 3 || !grid_try_merge_hole(s, ws, hx, hy, hw, hh)) {
         grid_normalize_3x2(s, ws);
     }
 }
@@ -569,9 +646,10 @@ void grid_on_toplevel_remove(struct wm_server *s, struct wm_toplevel *closing) {
 static int grid_count_on_ws(const struct wm_server *s, int ws) { int n = 0; struct wm_toplevel *t; wl_list_for_each(t, &s->toplevels, link) if (t->in_list && t->workspace == ws) n++; return n; }
 
 static int grid_find_penalty_ws(struct wm_server *s, int owner_ws, int cap) {
+    (void)cap;
     int total = s->config.workspaces > 16 ? 16 : s->config.workspaces;
     if (total < 2) return -1;
-    for (int ws = total - 1; ws >= 0; ws--) if (ws != owner_ws && s->workspace_group_owner[ws] == owner_ws + 1 && grid_count_on_ws(s, ws) < cap) return ws;
+    for (int ws = total - 1; ws >= 0; ws--) if (ws != owner_ws && s->workspace_group_owner[ws] == owner_ws + 1 && grid_count_on_ws(s, ws) < WM_MAX_SLOTS) return ws;
     for (int ws = total - 1; ws >= 0; ws--) if (ws != owner_ws && grid_count_on_ws(s, ws) == 0 && s->workspace_group_owner[ws] == 0) { s->workspace_group_owner[ws] = owner_ws + 1; return ws; }
     return -1;
 }
@@ -591,7 +669,7 @@ static void grid_reclaim_penalty(struct wm_server *s, int owner_ws) {
         struct wm_toplevel *cand = NULL, *t; int found_ws = -1;
         for (int w = total - 1; w >= 0 && !cand; w--) {
             if (w == owner_ws || s->workspace_group_owner[w] != owner_ws + 1) continue;
-            wl_list_for_each(t, &s->toplevels, link) if (t->in_list && t->workspace == w) { cand = t; found_ws = w; break; }
+            wl_list_for_each_reverse(t, &s->toplevels, link) if (t->in_list && t->workspace == w) { cand = t; found_ws = w; break; }
         }
         if (!cand) break;
         cand->workspace = owner_ws; cand->is_floating = false; cand->is_minimized = false;
